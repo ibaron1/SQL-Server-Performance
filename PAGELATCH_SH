@@ -1,0 +1,112 @@
+The PAGELATCH_SH wait type in SQL Server is associated with a situation where a session is waiting for a shared latch on a data page. Latches are lightweight synchronization mechanisms used by SQL Server to control access to data pages in memory. The PAGELATCH_SH wait specifically refers to waiting for a shared latch on a page, typically when a query or operation is trying to read data from a page that is currently being accessed by another operation.
+
+What Does PAGELATCH_SH Mean?
+The PAGELATCH_SH wait type indicates that SQL Server is waiting for a shared latch to be granted on a data page. A shared latch means that multiple sessions can access the page concurrently, but only in a read-only fashion. When SQL Server needs to read a page from memory, it needs to acquire a latch to ensure that the page is not modified while it is being read.
+
+The shared latch allows other sessions to read the same page simultaneously but prevents any session from modifying the page while it is being read.
+
+When Does PAGELATCH_SH Occur?
+Reading Pages:
+
+SQL Server uses latches when reading data pages into memory. When a session wants to read a page (e.g., for a SELECT operation), it must first acquire a shared latch on that page.
+Index Scans:
+
+During index scans or table scans, SQL Server reads data pages into memory and needs to acquire a shared latch on each page it reads. If the page is already being read by another session, the session will have to wait for the shared latch to be released.
+Concurrency Control:
+
+PAGELATCH_SH waits occur when multiple sessions are concurrently reading the same page, and they need to coordinate their access via the shared latch. SQL Server uses this to ensure consistency when reading pages.
+Buffer Pool Paging:
+
+SQL Server maintains an in-memory buffer pool of pages, and it uses latches to ensure that no page is modified while it is being read into memory. When a page is already in memory and is being used for reading, sessions that need to read it will wait if the latch is held by another session.
+What Causes PAGELATCH_SH Waits?
+PAGELATCH_SH waits typically happen when there is contention for reading the same page in memory, particularly in the following scenarios:
+
+High Concurrency with Reads:
+
+If multiple queries are accessing the same page at the same time, SQL Server will apply a shared latch to the page. High concurrency with a lot of SELECT queries accessing the same pages can lead to increased PAGELATCH_SH waits.
+Heavy Table Scans or Index Scans:
+
+Queries that perform full table scans or large index scans often need to read large amounts of data from disk into memory. As a result, they can generate a lot of PAGELATCH_SH waits, especially if the table or index is very large and accessed frequently by other sessions.
+High Disk I/O:
+
+If SQL Server needs to read pages from disk into memory because they are not in the buffer pool, this can result in PAGELATCH_SH waits. In situations where there is a lot of disk I/O or slow storage, it could cause delays in getting pages into memory, leading to latch contention.
+Resource Contention:
+
+High contention for specific pages (e.g., if many sessions are accessing the same set of rows or index pages) can lead to longer PAGELATCH_SH waits, as sessions queue up waiting for the latch to be released.
+Memory Pressure:
+
+If SQL Server is under memory pressure and the buffer pool cannot hold all the pages that need to be accessed, SQL Server may need to read data from disk more frequently, leading to PAGELATCH_SH waits as pages are loaded into memory.
+How to Diagnose and Investigate PAGELATCH_SH Waits:
+Check Wait Statistics:
+
+To check the amount of PAGELATCH_SH waits that are occurring in SQL Server, you can query the sys.dm_exec_wait_stats DMV:
+
+sql
+Copy
+SELECT wait_type, wait_time_ms, waiting_tasks_count
+FROM sys.dm_exec_wait_stats
+WHERE wait_type = 'PAGELATCH_SH';
+This will give you the total time spent on PAGELATCH_SH waits and how many tasks are currently waiting for the latch.
+
+Monitor Active Sessions:
+
+To see which queries are currently waiting on PAGELATCH_SH, you can query sys.dm_exec_requests along with the associated SQL text:
+
+sql
+Copy
+SELECT r.session_id, r.wait_type, r.wait_time_ms, t.text AS sql_text
+FROM sys.dm_exec_requests r
+CROSS APPLY sys.dm_exec_sql_text(r.sql_handle) t
+WHERE r.wait_type = 'PAGELATCH_SH';
+This will show you which queries are waiting on PAGELATCH_SH and the SQL text associated with those requests.
+
+Identify Hot Pages:
+
+If the same pages are being accessed frequently and causing high latch contention, you can use the following query to identify the hot pages:
+
+sql
+Copy
+SELECT file_id, page_id, COUNT(*) AS latch_wait_count
+FROM sys.dm_tran_locks
+WHERE resource_type = 'PAGE'
+GROUP BY file_id, page_id
+ORDER BY latch_wait_count DESC;
+This can help identify the specific pages that are being contended for by multiple sessions.
+
+Analyze the Buffer Pool:
+
+You can also examine the buffer pool usage to see if there is memory pressure or inefficient use of memory that might be contributing to excessive PAGELATCH_SH waits:
+
+sql
+Copy
+SELECT
+    (total_buffer_count * 8) / 1024 AS buffer_pool_size_mb,
+    (total_pages_count * 8) / 1024 AS total_pages_mb
+FROM sys.dm_os_buffer_descriptors;
+If SQL Server is under memory pressure and is having to frequently load pages into memory, this could lead to more latch waits.
+
+How to Resolve PAGELATCH_SH Waits:
+Optimize Queries:
+
+Optimize queries that are causing high contention for pages. For example, queries that require full table scans or large index scans can often be optimized by using proper indexing, filtering data, or breaking large queries into smaller ones.
+Use WHERE clauses to filter data and avoid scanning entire tables unnecessarily.
+Increase Memory:
+
+If memory pressure is contributing to excessive PAGELATCH_SH waits, consider increasing the amount of physical memory available to SQL Server. This can reduce the need for SQL Server to load pages from disk, thus reducing latch contention.
+Optimize Indexing:
+
+Ensure that appropriate indexes are in place for frequently queried tables and columns. Proper indexing can help reduce the need for full table scans, which can reduce the amount of data being read from pages and therefore reduce PAGELATCH_SH waits.
+Partition Large Tables:
+
+For large tables that are frequently accessed, consider partitioning them into smaller, more manageable chunks. This can help reduce the contention for specific pages, as different partitions may be read and written to by different sessions.
+Optimize Application Design:
+
+Design your application to reduce the number of concurrent reads on the same page. For example, consider implementing caching mechanisms at the application level or reducing the frequency of concurrent read-heavy queries.
+Consider Using Read Committed Snapshot Isolation:
+
+If appropriate for your workload, consider using Read Committed Snapshot Isolation (RCSI) or Snapshot Isolation. These isolation levels reduce the need for shared locks, potentially reducing contention for pages.
+Reduce Disk I/O:
+
+If disk I/O is a bottleneck, consider using faster storage devices (e.g., SSDs) to speed up page reads. Reducing disk latency can help reduce the time spent waiting for pages to be loaded into memory, which in turn can reduce latch contention.
+Conclusion:
+The PAGELATCH_SH wait type in SQL Server occurs when a session is waiting for a shared latch on a page, typically during read operations. It is most commonly seen when multiple sessions are trying to read the same page concurrently, such as during index or table scans. High PAGELATCH_SH waits can be caused by high concurrency, inefficient queries, memory pressure, or disk I/O issues. To resolve these waits, optimizing queries, increasing memory, reducing disk I/O, and ensuring proper indexing are important steps. By addressing these factors, you can reduce latch contention and improve overall performance.
