@@ -1,0 +1,95 @@
+The LCK_M_TS wait type in SQL Server is related to locking and transaction sequencing. It occurs when a session is waiting for a metadata lock on a table during certain DDL (Data Definition Language) operations or table schema changes.
+
+What Does LCK_M_TS Mean?
+The LCK_M_TS wait type refers to a lock on a table schema or table structure. Specifically, it is a metadata lock associated with table-level operations (such as altering or changing the schema of a table).
+
+When Does LCK_M_TS Occur?
+LCK_M_TS waits occur primarily in the following situations:
+
+When a Session is Waiting for a Lock on Table Schema:
+
+This wait type is typically seen when a session is waiting for access to the table's schema before executing operations such as ALTER TABLE, CREATE INDEX, or DROP INDEX. These are operations that affect the table's structure and require an exclusive or shared lock to access the schema.
+In DDL Operations:
+
+The LCK_M_TS wait type is observed when the system needs to lock the table schema for DDL operations. If one session is executing a DDL operation and another session is attempting to execute a DML operation (like SELECT, INSERT, UPDATE, or DELETE) on the same table, the DML operation may be blocked until the DDL operation completes.
+When Altering Tables:
+
+During schema changes on the table (such as adding or removing columns, modifying constraints, or creating indexes), SQL Server may require metadata locks to ensure that the structure is not modified while a DML operation is ongoing.
+Concurrent DDL and DML Operations:
+
+This wait type can be observed when there are concurrent DDL and DML operations being executed on the same table. For example, if a session is attempting to add an index to a table while another session is inserting data into the table, the DDL operation will need to wait for the schema lock to be released by the DML operation.
+What Causes LCK_M_TS Waits?
+Concurrency Between DDL and DML Operations:
+
+If DDL (Data Definition Language) operations are being executed on a table and there are also ongoing DML (Data Manipulation Language) operations, the LCK_M_TS wait can occur. This is because DDL operations require locks on the table schema to make structural changes, and DML operations require access to the table’s data.
+Locked Table Schema:
+
+Metadata locks are acquired during schema changes, so if another session is already executing a DDL operation, it can block other sessions attempting to access the table's schema until the lock is released.
+Infrequent or Long-Running DDL Operations:
+
+Long-running or complex schema operations such as adding large indexes or altering large tables can cause LCK_M_TS waits because the system must acquire and hold locks on the table schema for a prolonged period.
+High Contention for Metadata Locks:
+
+If many DDL operations are being executed concurrently, SQL Server may have difficulty acquiring metadata locks for schema changes, leading to wait times.
+How to Diagnose and Investigate LCK_M_TS Waits:
+Check Current Wait Statistics:
+
+You can check the current wait statistics to see how often LCK_M_TS waits occur and how long the wait times are:
+
+sql
+Copy
+SELECT wait_type, wait_time_ms, waiting_tasks_count
+FROM sys.dm_exec_wait_stats
+WHERE wait_type = 'LCK_M_TS';
+This will show the total time spent and the number of tasks waiting on LCK_M_TS.
+
+Monitor Active Sessions:
+
+To see which sessions are waiting on LCK_M_TS waits, you can use the following query to identify them:
+
+sql
+Copy
+SELECT r.session_id, r.wait_type, r.wait_time_ms, t.text AS sql_text
+FROM sys.dm_exec_requests r
+CROSS APPLY sys.dm_exec_sql_text(r.sql_handle) t
+WHERE r.wait_type = 'LCK_M_TS';
+This will help you identify the queries or sessions that are waiting on metadata locks for the table schema.
+
+Check for Schema Changes:
+
+If the system is experiencing LCK_M_TS waits, check whether DDL operations are in progress, such as ALTER TABLE or CREATE INDEX commands:
+
+sql
+Copy
+SELECT * 
+FROM sys.dm_exec_requests
+WHERE command IN ('ALTER TABLE', 'CREATE INDEX', 'DROP INDEX');
+This will show any current DDL operations that might be holding metadata locks on the table.
+
+Analyze Locking Behavior:
+
+You can use SQL Server Profiler or Extended Events to capture lock events and identify which queries are causing LCK_M_TS waits. Capturing locking events can help you identify if certain tables or operations are being blocked or delayed.
+
+How to Resolve LCK_M_TS Waits:
+Reduce Concurrent DDL and DML Operations:
+
+One of the main causes of LCK_M_TS waits is concurrent DDL and DML operations on the same table. Try to reduce the concurrency of schema changes (DDL) and data manipulations (DML) on the same tables. Schedule DDL operations during off-peak hours to reduce blocking and contention.
+Optimize DDL Operations:
+
+If long-running DDL operations are causing LCK_M_TS waits, consider optimizing them. For example, breaking large schema changes (such as adding indexes) into smaller chunks can reduce the time the schema lock is held. Additionally, ensure that your DDL operations are as efficient as possible.
+Use Explicit Locking (if appropriate):
+
+In some cases, you may be able to use explicit locking hints in your DML queries (e.g., WITH (NOLOCK)) to avoid waiting for table schema locks when running read operations. However, be cautious with this approach as it can lead to dirty reads and other issues.
+Partition Large Tables:
+
+If you're working with large tables and experiencing contention due to schema changes, partitioning the table may help. This can reduce the scope of schema modifications, and partitioning operations can be more manageable.
+Consider Using Online Index Operations:
+
+For index creation, deletion, or rebuilding on large tables, use online index operations where possible. The ONLINE option for CREATE INDEX or ALTER INDEX will reduce the locking required and allow DML operations to continue concurrently with index operations.
+Ensure Sufficient System Resources:
+
+If LCK_M_TS waits are occurring due to resource constraints (e.g., insufficient CPU or memory), consider improving the hardware or adjusting system resources. Additionally, ensure that your tempdb is appropriately sized, as this can affect DDL operations.
+Conclusion:
+The LCK_M_TS wait type in SQL Server is associated with metadata locks on the table schema during DDL operations. It occurs when SQL Server is waiting for access to the table schema while performing operations such as ALTER TABLE or CREATE INDEX. These waits typically happen in environments where there are concurrent DDL and DML operations or long-running schema changes.
+
+To resolve LCK_M_TS waits, you can reduce concurrent schema changes and data modifications, optimize DDL operations, use online index operations, and ensure sufficient system resources. Properly managing and scheduling schema changes can help minimize these waits and improve overall performance.
