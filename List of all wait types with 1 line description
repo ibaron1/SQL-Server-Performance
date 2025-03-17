@@ -1,0 +1,50 @@
+Here's a list of common SQL Server wait types with a brief one-line description for each:
+
+ASYNC_NETWORK_IO: Wait for data to be sent over the network to a client or between servers.
+CXPACKET: Wait for parallel query execution threads to synchronize.
+CXCONSUMER: Wait for parallel consumer threads to process data in parallel queries.
+RESOURCE_SEMAPHORE: Wait for memory or resources to become available for queries.
+PAGEIOLATCH_SH: Wait for shared access to a page in the buffer pool.
+PAGEIOLATCH_EX: Wait for exclusive access to a page in the buffer pool.
+LCK_M_X: Wait for an exclusive lock on a resource, such as a row or table.
+LCK_M_S: Wait for a shared lock on a resource, typically for reading.
+LCK_M_U: Wait for an update lock, usually for writing or updating data.
+LOGMGR_QUEUE: Wait for a log record to be written to the transaction log.
+OLEDB: Wait for OLE DB operations, commonly during linked server queries.
+ASYNC_IO_COMPLETION: Wait for asynchronous I/O operations to finish.
+WRITELOG: Wait for the transaction log to be written to disk.
+HADR_FILESTREAM_I/O: Wait for FILESTREAM I/O operations to complete in AlwaysOn.
+NETWORKIO: Wait for data transfer between the SQL Server and client over the network.
+IO_COMPLETION: Wait for the completion of an I/O operation.
+DTC: Wait for Distributed Transaction Coordinator (DTC) operations to complete.
+SP_SERVER_DIAGNOSTICS: Wait for diagnostic checks to complete.
+LOCK_MANAGER: Wait for a lock manager resource to become available.
+FT_SERVER_WAIT: Wait for Full-Text Search services to process queries.
+MEMORY_ALLOCATION_EXT: Wait for memory to be allocated for queries or operations.
+FT_INDEXING: Wait during indexing operations in Full-Text Search.
+CHECKPOINT: Wait for a checkpoint operation to complete, which flushes dirty pages to disk.
+HADR_SYNC_COMMIT: Wait for a synchronous commit in AlwaysOn Availability Groups.
+LCK_M_TS: Wait for a table schema lock during DDL operations like ALTER TABLE.
+BACKUPTHREAD: Wait during database backup operations.
+TASK_SWITCH: Wait for the CPU to switch tasks in multi-threaded processing.
+SQLTRACE: Wait for SQL Trace events or activities.
+WAITFOR: Wait for a signal or timeout before continuing query execution.
+SQLCLR: Wait for .NET CLR-based operations to complete.
+PAGELATCH_UP: Wait for updates or modifications to a page in the buffer pool.
+PAGELATCH_EX: Wait for exclusive access to modify a page in the buffer pool.
+PAGELATCH_SH: Wait for shared access to a page in the buffer pool for reading.
+HTMEMO: Wait for memory-optimized table operations, often related to hash indexes.
+HTDELETE: Wait for delete operations on memory-optimized tables.
+LATCH_EX: Wait for exclusive access to internal memory structures.
+LATCH_SH: Wait for shared access to internal memory structures.
+IO_COMPLETION: Wait for I/O requests (disk or network) to finish.
+ACCESS_METHOD: Wait for the method used to access a table or index to complete.
+LCK_M_DIX: Wait for a lock on an index structure during DDL operations.
+ASYNC_IO_COMPLETION: Wait for asynchronous I/O operations to complete.
+LCK_M_SCH-M: Wait for schema modification locks to be released during DDL operations.
+LCK_M_UPGRADE: Wait for an upgrade lock to be granted when a session tries to escalate.
+LOCK_ESCALATION: Wait for a lock escalation operation to complete.
+LATCH_WAIT: Wait for access to an internal memory latch.
+TIMEOUT: Wait for an operation to complete within a specified time limit.
+RUM: Resource utilization monitor wait, related to SQL Server resource management.
+This is a simplified list of common wait types, and some specialized ones may be used for advanced operations or specific workloads. For a deeper understanding, refer to Microsoft's official documentation or performance tuning guides.
