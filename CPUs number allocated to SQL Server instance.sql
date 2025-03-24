@@ -1,0 +1,1 @@
+select max(scheduler_id) from sys.dm_os_schedulers where status = 'VISIBLE ONLINE'
